@@ -39,6 +39,9 @@ ul.punti { padding-left: 20px; margin: 0 0 16px; }
 ul.punti li { margin-bottom: 8px; }
 .box { background: var(--accent-soft); border-radius: 12px; padding: 14px 16px; margin: 16px 0; }
 .box.oro { background: var(--off); }
+.box.privacy ul { margin: 8px 0 0; padding-left: 20px; }
+.box.privacy li { margin-bottom: 6px; font-size: 16px; }
+.box.privacy .tit { font-weight: 700; }
 label.campo { display: block; font-weight: 600; margin: 18px 0 6px; }
 input.testo {
   width: 100%; font: inherit; padding: 12px 14px; border-radius: 10px;
@@ -183,7 +186,12 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
   var tSalva = null;
   function salvaSubito() {
     clearTimeout(tSalva);
-    try { localStorage.setItem(CHIAVE, JSON.stringify(S)); } catch (e) {}
+    try {
+      // niente da conservare → niente nel browser (vale anche dopo «Cancella»)
+      var niente = !S.nome && !Object.keys(S.v).length && !Object.keys(S.nulla).length && !Object.keys(S.u).length;
+      if (niente && S.passo === 0) localStorage.removeItem(CHIAVE);
+      else localStorage.setItem(CHIAVE, JSON.stringify(S));
+    } catch (e) {}
   }
   function salva() { clearTimeout(tSalva); tSalva = setTimeout(salvaSubito, 300); }
   // chi chiude la pagina subito dopo l'ultima risposta non deve perderla
@@ -264,8 +272,13 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
       '<li>Puoi andare avanti e indietro. Se chiudi la pagina, riprendi da qui su questo dispositivo.</li>' +
       '<li>Alla fine rivedi tutto e lo mandi a Giorgio.</li>' +
       '</ul>' + note +
-      '<div class="box">🔒 Le risposte restano su questo dispositivo: la pagina non le salva su nessun server. ' +
-      'Escono solo quando le mandi tu, per e-mail.</div>' +
+      '<div class="box privacy"><div class="tit">🔒 I tuoi dati</div><ul>' +
+      '<li><b>Questa pagina non trasmette le tue risposte a nessun server.</b> Restano solo nel browser di questo dispositivo, così puoi interrompere e riprendere.</li>' +
+      '<li><b>Escono solo se le invii tu</b>, con il tuo programma di posta, a un unico destinatario: Giorgio Carrara, SVAG, ' + DESTINATARIO + '.</li>' +
+      '<li><b>Servono a preparare l’analisi del tuo budget</b> nell’ambito della consulenza SVAG. Una volta ricevute, sono trattate secondo la legge federale sulla protezione dei dati (LPD).</li>' +
+      '<li><b>Niente cookie né statistiche.</b> Come ogni sito, il servizio che ospita la pagina (GitHub Pages) registra per sicurezza l’indirizzo IP di chi la visita, ma non riceve le tue risposte.</li>' +
+      '<li><b>Le cancelli quando vuoi</b> da questo dispositivo, con il pulsante in fondo al riepilogo.</li>' +
+      '</ul></div>' +
       '<label class="campo" for="nome">Il tuo nome</label>' +
       '<input class="testo" id="nome" autocomplete="name" value="' + esc(S.nome) + '" placeholder="Nome e cognome">';
     var nome = document.getElementById("nome");
@@ -419,6 +432,11 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
     }
     var nomeVuoto = !S.nome;
     html += '<h2>Invia a Giorgio</h2>' +
+      '<div class="box privacy"><div class="tit">🔒 Prima di inviare</div><ul>' +
+      '<li>Il pulsante apre il tuo programma di posta con il messaggio già scritto: lo vedi e decidi tu se inviarlo.</li>' +
+      '<li>Destinatario unico: <b>' + DESTINATARIO + '</b>. Finché non invii, le risposte non lasciano questo dispositivo.</li>' +
+      '<li>Se il dispositivo non è solo tuo, dopo l’invio cancellale con il pulsante qui sotto.</li>' +
+      '</ul></div>' +
       (nomeVuoto ? '<label class="campo" for="nome2">Il tuo nome</label><input class="testo" id="nome2" placeholder="Nome e cognome">' : '') +
       '<div class="azioni">' +
         '<button class="primario" type="button" id="invia">✉️  Apri la mail per Giorgio</button>' +
