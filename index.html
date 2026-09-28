@@ -53,6 +53,9 @@ input.testo:focus, input.importo:focus { outline: none; border-color: var(--acce
 .voce.nulla { background: var(--off); }
 .voce .tit { font-weight: 650; }
 .voce .dom { color: var(--muted); font-size: 15px; margin: 2px 0 10px; }
+.voce input.desc { margin-top: 10px; font-size: 16px; padding: 10px 12px; }
+.voce.nulla input.desc { display: none; }
+td .desc-r { display: block; font-size: 14px; color: var(--muted); }
 .riga { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
 .imp { position: relative; flex: 1 1 140px; }
 .imp span { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 15px; pointer-events: none; }
@@ -174,11 +177,11 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
   var N = CATEGORIE.length, RIEPILOGO = N + 1;
 
   // ── stato, conservato solo su questo dispositivo
-  var S = { passo: 0, nome: "", v: {}, u: {}, nulla: {} };
+  var S = { passo: 0, nome: "", v: {}, u: {}, nulla: {}, d: {} };
   try {
     var salvato = JSON.parse(localStorage.getItem(CHIAVE) || "null");
     if (salvato && typeof salvato === "object") {
-      S.nome = salvato.nome || ""; S.v = salvato.v || {}; S.u = salvato.u || {}; S.nulla = salvato.nulla || {};
+      S.nome = salvato.nome || ""; S.v = salvato.v || {}; S.u = salvato.u || {}; S.nulla = salvato.nulla || {}; S.d = salvato.d || {};
       S.passo = Math.min(Math.max(0, salvato.passo | 0), RIEPILOGO);
     }
   } catch (e) { /* archivio non disponibile: si lavora senza */ }
@@ -188,7 +191,7 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
     clearTimeout(tSalva);
     try {
       // niente da conservare → niente nel browser (vale anche dopo «Cancella»)
-      var niente = !S.nome && !Object.keys(S.v).length && !Object.keys(S.nulla).length && !Object.keys(S.u).length;
+      var niente = !S.nome && !Object.keys(S.v).length && !Object.keys(S.nulla).length && !Object.keys(S.u).length && !Object.keys(S.d).length;
       if (niente && S.passo === 0) localStorage.removeItem(CHIAVE);
       else localStorage.setItem(CHIAVE, JSON.stringify(S));
     } catch (e) {}
@@ -286,7 +289,7 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
     var dc = document.getElementById("dacapo");
     if (dc) dc.addEventListener("click", function () {
       if (!confirm("Cancellare tutte le risposte date finora?")) return;
-      S = { passo: 0, nome: "", v: {}, u: {}, nulla: {} }; ripreso = false; salva(); mostra(0);
+      S = { passo: 0, nome: "", v: {}, u: {}, nulla: {}, d: {} }; ripreso = false; salva(); mostra(0);
     });
   }
 
@@ -310,6 +313,8 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
           }).join("") +
           '</div>' +
         '</div>' +
+        (it.note ? '<input class="testo desc" id="d_' + it.id + '" maxlength="200" autocomplete="off"' +
+          ' placeholder="Descrizione: di che spese si tratta?" value="' + esc(S.d[it.id] || '') + '">' : '') +
         '<div class="piede"><span class="mese" aria-live="polite"></span>' +
         '<button class="nonho" type="button" aria-pressed="' + nul + '">Non ce l’ho</button></div>' +
       '</div>';
@@ -337,11 +342,12 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
   }
 
   function impostaNulla(it, si) {
-    if (si) { S.nulla[it.id] = true; delete S.v[it.id]; } else { delete S.nulla[it.id]; }
+    if (si) { S.nulla[it.id] = true; delete S.v[it.id]; delete S.d[it.id]; } else { delete S.nulla[it.id]; }
     var r = riga(it); if (!r) return;
     r.classList.toggle("nulla", si);
     var inp = r.querySelector("input.importo");
     inp.disabled = si; if (si) inp.value = "";
+    var ds = r.querySelector("input.desc"); if (ds && si) ds.value = "";
     r.querySelectorAll(".unita button").forEach(function (b) { b.disabled = si; });
     r.querySelector("button.nonho").setAttribute("aria-pressed", String(si));
     aggiornaRiga(it);
@@ -349,6 +355,12 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
 
   function collega(it) {
     var r = riga(it), inp = r.querySelector("input.importo");
+    var ds = r.querySelector("input.desc");
+    if (ds) ds.addEventListener("input", function () {
+      var t = ds.value.trim();
+      if (t) S.d[it.id] = t; else delete S.d[it.id];
+      salva();
+    });
     inp.addEventListener("input", function () {           // niente render: aggiorna solo la riga
       var n = norm(inp.value);
       if (n === null) { aggiornaRiga(it, true); return; }
@@ -387,6 +399,7 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
       if (!risposta(it)) return;
       b[it.id] = S.nulla[it.id] ? "0" : S.v[it.id];
       if (!S.nulla[it.id] && S.u[it.id] && S.u[it.id] !== it.unit) b[it.id + "_u"] = S.u[it.id];
+      if (!S.nulla[it.id] && S.d[it.id]) b[it.id + "_desc"] = S.d[it.id];
     });
     var oggi = new Date();
     var data = oggi.getFullYear() + "-" + ("0" + (oggi.getMonth() + 1)).slice(-2) + "-" + ("0" + oggi.getDate()).slice(-2);
@@ -403,7 +416,7 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
         risposte++;
         var m = alMese(it) || 0;
         if (it.type === "F") fisse += m; else variabili += m;
-        righe += '<tr><td>' + esc(it.label) + '</td>' +
+        righe += '<tr><td>' + esc(it.label) + (S.d[it.id] ? '<span class="desc-r">' + esc(S.d[it.id]) + '</span>' : '') + '</td>' +
           (S.nulla[it.id]
             ? '<td class="n" colspan="2">non ce l’ho</td>'
             : '<td class="n">' + fmtImporto(S.v[it.id]) + ' ' + PER_U[unita(it)] + '</td><td class="n"><b>' + fmt(m) + '</b></td>') +
@@ -486,7 +499,7 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
     document.getElementById("cancella").addEventListener("click", function () {
       if (!confirm("Cancellare le tue risposte da questo dispositivo? Quelle già inviate a Giorgio restano a lui.")) return;
       try { localStorage.removeItem(CHIAVE); } catch (e) {}
-      S = { passo: 0, nome: "", v: {}, u: {}, nulla: {} }; ripreso = false;
+      S = { passo: 0, nome: "", v: {}, u: {}, nulla: {}, d: {} }; ripreso = false;
       mostra(0);
     });
   }

@@ -1,7 +1,7 @@
 // GENERATO da ~/SVAG-tools/budget_wizard/genera.py — non modificare a mano.
-// Fonte: SVAG_Master_v3_26.html
+// Fonte: SVAG_Master_v3_27.html
 window.SVAG_VOCI = {
- "fonte": "SVAG_Master_v3_26.html",
+ "fonte": "SVAG_Master_v3_27.html",
  "generato": "2026-09-28",
  "categorie": [
   {
@@ -138,28 +138,28 @@ window.SVAG_VOCI = {
     {
      "id": "franch",
      "label": "Franchigia effettiva",
-     "q": "Spesa annua franchigia?",
+     "q": "Quanto si paga di tasca propria in un anno prima che la cassa rimborsi (visite, esami, medicine)? Al massimo la franchigia scelta.",
      "unit": "anno",
      "type": "F"
     },
     {
      "id": "copay",
      "label": "Quota parte 10%",
-     "q": "Stima annua?",
+     "q": "Superata la franchigia si paga il 10% di ogni fattura, al massimo 700 all'anno (350 per i figli): quanto in un anno?",
      "unit": "anno",
      "type": "F"
     },
     {
      "id": "dentist",
      "label": "Dentista",
-     "q": "Spesa annua?",
+     "q": "Quanto si spende dal dentista in un anno, igiene compresa?",
      "unit": "anno",
      "type": "D"
     },
     {
      "id": "meds",
      "label": "Medicinali / terapie",
-     "q": "Media mensile non rimborsata?",
+     "q": "Medicine o terapie che nessuno rimborsa: quanto al mese?",
      "unit": "mese",
      "type": "D"
     }
@@ -413,7 +413,8 @@ window.SVAG_VOCI = {
      "label": "Altro",
      "q": "Altre spese ricorrenti?",
      "unit": "mese",
-     "type": "D"
+     "type": "D",
+     "note": true
     }
    ]
   },
