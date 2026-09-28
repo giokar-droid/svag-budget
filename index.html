@@ -257,8 +257,8 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
         var l = it.label; return /^[A-Z]{2}/.test(l) ? l : l.charAt(0).toLowerCase() + l.slice(1);
       }).join(", ");
       var resto = GIA_NOTE.length > 5 ? " e altre " + (GIA_NOTE.length - 5) : "";
-      note = '<div class="box oro">Alcune voci le ho già dai tuoi documenti — ' + esc(nomi) + esc(resto) +
-        ' — e non te le chiedo.</div>';
+      note = '<div class="box oro">Alcune voci non te le chiedo, perché le ho già o non ti riguardano: ' +
+        esc(nomi) + esc(resto) + '.</div>';
     }
     app.innerHTML =
       '<h1>Il tuo budget, voce per voce</h1>' +
