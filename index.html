@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Il tuo budget</title>
+<style>
+:root {
+  --bg: #F6F3EC; --card: #FFFFFF; --ink: #1D2927; --muted: #5E6B68; --line: #E3DDD0;
+  --accent: #00695C; --accent-ink: #FFFFFF; --accent-soft: #E3F0EE;
+  --gold: #9A7328; --warn: #9A4A1C; --off: #F1EEE6;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141A19; --card: #1C2422; --ink: #E8EEEC; --muted: #9DAAA7; --line: #2D3735;
+    --accent: #4DB6A6; --accent-ink: #0E1413; --accent-soft: #1F3330;
+    --gold: #D4AE62; --warn: #E0936A; --off: #232C2A;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  padding-bottom: calc(84px + env(safe-area-inset-bottom));
+}
+.wrap { max-width: 640px; margin: 0 auto; padding: 0 16px; }
+header { padding: 18px 0 10px; }
+.marca { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.avanz { height: 5px; background: var(--line); border-radius: 3px; margin-top: 12px; overflow: hidden; }
+.avanz > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s; }
+h1 { font-size: 26px; line-height: 1.2; margin: 18px 0 8px; }
+h2 { font-size: 22px; margin: 16px 0 4px; display: flex; align-items: center; gap: 10px; }
+.sotto { color: var(--muted); margin: 0 0 14px; }
+p { margin: 0 0 12px; }
+ul.punti { padding-left: 20px; margin: 0 0 16px; }
+ul.punti li { margin-bottom: 8px; }
+.box { background: var(--accent-soft); border-radius: 12px; padding: 14px 16px; margin: 16px 0; }
+.box.oro { background: var(--off); }
+label.campo { display: block; font-weight: 600; margin: 18px 0 6px; }
+input.testo {
+  width: 100%; font: inherit; padding: 12px 14px; border-radius: 10px;
+  border: 1.5px solid var(--line); background: var(--card); color: var(--ink);
+}
+input.testo:focus, input.importo:focus { outline: none; border-color: var(--accent); }
+
+.voce { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 14px 12px; margin: 12px 0; }
+.voce.nulla { background: var(--off); }
+.voce .tit { font-weight: 650; }
+.voce .dom { color: var(--muted); font-size: 15px; margin: 2px 0 10px; }
+.riga { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+.imp { position: relative; flex: 1 1 140px; }
+.imp span { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 15px; pointer-events: none; }
+input.importo {
+  width: 100%; font: inherit; font-size: 19px; font-weight: 600; text-align: right;
+  padding: 11px 12px 11px 48px; border-radius: 10px; border: 1.5px solid var(--line);
+  background: var(--card); color: var(--ink);
+}
+input.importo:disabled { background: transparent; color: var(--muted); }
+.unita { display: flex; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; flex: 0 0 auto; }
+.unita button {
+  font: inherit; font-size: 15px; border: 0; background: var(--card); color: var(--muted);
+  padding: 0 12px; min-height: 48px; cursor: pointer;
+}
+.unita button + button { border-left: 1px solid var(--line); }
+.unita button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.unita button:disabled { opacity: .45; cursor: default; }
+.piede { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 10px; min-height: 36px; }
+.mese { font-size: 15px; color: var(--muted); }
+.mese b { color: var(--ink); }
+.mese.err { color: var(--warn); }
+button.nonho {
+  font: inherit; font-size: 15px; border: 1.5px solid var(--line); background: transparent; color: var(--ink);
+  border-radius: 999px; padding: 6px 14px; cursor: pointer; white-space: nowrap;
+}
+button.nonho[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button.tutte {
+  font: inherit; font-size: 15px; background: transparent; border: 0; color: var(--accent);
+  text-decoration: underline; text-underline-offset: 3px; padding: 4px 0; cursor: pointer;
+}
+
+table { width: 100%; border-collapse: collapse; margin: 6px 0 4px; }
+td, th { padding: 9px 4px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+th { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+td.n, th.n { text-align: right; white-space: nowrap; }
+.cat-tit { display: flex; justify-content: space-between; align-items: baseline; margin-top: 22px; }
+.cat-tit a { font-size: 15px; color: var(--accent); }
+.totali { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0; }
+.tile { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.tile .k { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.tile .v { font-size: 24px; font-weight: 700; }
+.tile.grande { grid-column: 1 / -1; background: var(--accent-soft); border-color: transparent; }
+.tile.grande .v { font-size: 30px; }
+
+.azioni { display: grid; gap: 10px; margin: 18px 0; }
+button.primario, button.secondario, a.primario {
+  font: inherit; font-weight: 650; border-radius: 12px; padding: 15px 18px; cursor: pointer; text-align: center; text-decoration: none;
+}
+button.primario, a.primario { background: var(--accent); color: var(--accent-ink); border: 0; font-size: 18px; }
+button.secondario { background: var(--card); color: var(--ink); border: 1.5px solid var(--line); }
+details { margin: 12px 0; }
+details summary { cursor: pointer; color: var(--muted); }
+pre { white-space: pre-wrap; word-break: break-all; background: var(--off); padding: 12px; border-radius: 10px; font-size: 13px; }
+.nota { font-size: 15px; color: var(--muted); }
+.esito { font-weight: 600; color: var(--accent); min-height: 1.5em; }
+
+nav.barra {
+  position: fixed; left: 0; right: 0; bottom: 0; background: var(--bg);
+  border-top: 1px solid var(--line); padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+}
+nav.barra .wrap { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+nav.barra button {
+  font: inherit; font-weight: 650; border-radius: 12px; padding: 12px 18px; min-width: 110px; cursor: pointer;
+}
+#indietro { background: transparent; border: 1.5px solid var(--line); color: var(--ink); }
+#avanti { background: var(--accent); border: 0; color: var(--accent-ink); }
+nav.barra button[hidden] { visibility: hidden; display: inline-block; }
+#passo { font-size: 15px; color: var(--muted); }
+.vuoto { text-align: center; padding: 40px 0; color: var(--muted); }
+</style>
+<script src="voci.js"></script>
+</head>
+<body>
+<header class="wrap">
+  <div class="marca">Giorgio Carrara · consulenza patrimoniale SVAG</div>
+  <div class="avanz" aria-hidden="true"><i id="avanz"></i></div>
+</header>
+<main class="wrap" id="app" tabindex="-1"></main>
+<nav class="barra" aria-label="Navigazione">
+  <div class="wrap">
+    <button id="indietro" type="button">← Indietro</button>
+    <span id="passo"></span>
+    <button id="avanti" type="button">Avanti →</button>
+  </div>
+</nav>
+
+<script>
+(function () {
+  "use strict";
+  var DESTINATARIO = "giorgio.carrara@svag.ch";
+  var CHIAVE = "svag-budget-wizard-v1";
+  var VOCI = window.SVAG_VOCI;
+  var app = document.getElementById("app");
+
+  if (!VOCI || !VOCI.categorie) {
+    app.innerHTML = '<p class="vuoto">La pagina non si è caricata del tutto. Ricaricala tra un attimo.</p>';
+    return;
+  }
+
+  // ── voci da saltare: #salta=rent,lamal,… (solo nomi di voce, mai importi né nomi di persona)
+  var salta = {};
+  (function () {
+    var m = /(?:^|[#&])salta=([^&]*)/.exec(location.hash);
+    if (m) decodeURIComponent(m[1]).split(",").forEach(function (id) { if (id.trim()) salta[id.trim()] = true; });
+  })();
+
+  var TUTTE = [], PER_ID = {};
+  VOCI.categorie.forEach(function (c) {
+    c.items.forEach(function (it) { it.cat = c; TUTTE.push(it); PER_ID[it.id] = it; });
+  });
+  var CATEGORIE = VOCI.categorie
+    .map(function (c) { return { id: c.id, icon: c.icon, name: c.name, items: c.items.filter(function (it) { return !salta[it.id]; }) }; })
+    .filter(function (c) { return c.items.length > 0; });
+  var DA_CHIEDERE = [];
+  CATEGORIE.forEach(function (c) { c.items.forEach(function (it) { DA_CHIEDERE.push(it); }); });
+  var GIA_NOTE = TUTTE.filter(function (it) { return salta[it.id]; });
+
+  // passi: 0 = benvenuto, 1..N = categorie, N+1 = riepilogo
+  var N = CATEGORIE.length, RIEPILOGO = N + 1;
+
+  // ── stato, conservato solo su questo dispositivo
+  var S = { passo: 0, nome: "", v: {}, u: {}, nulla: {} };
+  try {
+    var salvato = JSON.parse(localStorage.getItem(CHIAVE) || "null");
+    if (salvato && typeof salvato === "object") {
+      S.nome = salvato.nome || ""; S.v = salvato.v || {}; S.u = salvato.u || {}; S.nulla = salvato.nulla || {};
+      S.passo = Math.min(Math.max(0, salvato.passo | 0), RIEPILOGO);
+    }
+  } catch (e) { /* archivio non disponibile: si lavora senza */ }
+  var ripreso = S.passo > 0;
+  var tSalva = null;
+  function salvaSubito() {
+    clearTimeout(tSalva);
+    try { localStorage.setItem(CHIAVE, JSON.stringify(S)); } catch (e) {}
+  }
+  function salva() { clearTimeout(tSalva); tSalva = setTimeout(salvaSubito, 300); }
+  // chi chiude la pagina subito dopo l'ultima risposta non deve perderla
+  window.addEventListener("pagehide", salvaSubito);
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden") salvaSubito();
+  });
+
+  // ── numeri: accetta 1'490 · 1490.50 · 1490,50 · 1.490 (migliaia all'italiana)
+  function norm(t) {
+    t = String(t == null ? "" : t).replace(/chf|fr\.?/ig, "").replace(/[\s'’]/g, "");
+    if (t === "") return "";
+    if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, "");
+    else if (/^\d{1,3}(,\d{3})+$/.test(t)) t = t.replace(/,/g, "");
+    else if (t.indexOf(",") >= 0 && t.indexOf(".") < 0) t = t.replace(",", ".");
+    if (!/^\d*\.?\d*$/.test(t) || t === ".") return null;
+    var n = Number(t);
+    if (!isFinite(n) || n < 0) return null;
+    return String(Math.round(n * 100) / 100);
+  }
+  function fmt(n, dec) {
+    var f = Math.abs(n).toFixed(dec ? 2 : 0).split(".");
+    f[0] = f[0].replace(/\B(?=(\d{3})+(?!\d))/g, "’");
+    return (n < 0 ? "−" : "") + f.join(".");
+  }
+  function fmtImporto(s) { var n = Number(s); return fmt(n, n % 1 !== 0); }
+  function unita(it) { return S.u[it.id] || it.unit; }
+  function alMese(it) {
+    if (S.nulla[it.id]) return 0;
+    var n = Number(S.v[it.id]);
+    if (S.v[it.id] === undefined || S.v[it.id] === "" || !isFinite(n)) return null;
+    var u = unita(it);
+    return u === "anno" ? n / 12 : u === "settimana" ? n * 4.33 : n;
+  }
+  function risposta(it) { return !!S.nulla[it.id] || (S.v[it.id] !== undefined && S.v[it.id] !== ""); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  var ETICHETTA_U = { settimana: "sett", mese: "mese", anno: "anno" };
+  var PER_U = { settimana: "a settimana", mese: "al mese", anno: "all'anno" };
+
+  // ── rendering di un passo (solo quando si cambia passo: mai dentro la digitazione)
+  function mostra(passo, conFocus) {
+    S.passo = passo; salvaSubito();
+    if (passo === 0) benvenuto();
+    else if (passo === RIEPILOGO) riepilogo();
+    else categoria(CATEGORIE[passo - 1]);
+    document.getElementById("avanz").style.width = Math.round(passo / RIEPILOGO * 100) + "%";
+    document.getElementById("indietro").hidden = passo === 0;
+    var av = document.getElementById("avanti");
+    av.hidden = passo === RIEPILOGO;
+    av.textContent = passo === 0 ? "Cominciamo →" : passo === N ? "Rivedi →" : "Avanti →";
+    document.getElementById("passo").textContent =
+      passo === 0 ? "" : passo === RIEPILOGO ? "Riepilogo" : passo + " di " + N;
+    window.scrollTo(0, 0);
+    if (conFocus) app.focus({ preventScroll: true });
+  }
+
+  function benvenuto() {
+    var minuti = Math.max(5, Math.round(DA_CHIEDERE.length * 20 / 60));
+    var note = "";
+    if (GIA_NOTE.length) {
+      // minuscola solo l'iniziale, e mai davanti a una sigla (RC, LCA)
+      var nomi = GIA_NOTE.slice(0, 5).map(function (it) {
+        var l = it.label; return /^[A-Z]{2}/.test(l) ? l : l.charAt(0).toLowerCase() + l.slice(1);
+      }).join(", ");
+      var resto = GIA_NOTE.length > 5 ? " e altre " + (GIA_NOTE.length - 5) : "";
+      note = '<div class="box oro">Alcune voci le ho già dai tuoi documenti — ' + esc(nomi) + esc(resto) +
+        ' — e non te le chiedo.</div>';
+    }
+    app.innerHTML =
+      '<h1>Il tuo budget, voce per voce</h1>' +
+      '<p class="sotto">' + DA_CHIEDERE.length + ' voci in ' + N + ' gruppi · circa ' + minuti + ' minuti</p>' +
+      (ripreso ? '<div class="box">Riprendi da dove eri rimasto: le risposte già date sono qui. ' +
+        '<button class="tutte" type="button" id="dacapo">Ricomincia da capo</button></div>' : '') +
+      '<p>Sono le spese che guardiamo insieme nel colloquio. Bastano cifre all’ingrosso.</p>' +
+      '<ul class="punti">' +
+      '<li>Per ogni voce scegli se l’importo è <b>a settimana, al mese o all’anno</b>: quella che ti viene più naturale.</li>' +
+      '<li>Se una spesa non ce l’hai, tocca <b>«Non ce l’ho»</b>. Se non la sai, lasciala vuota.</li>' +
+      '<li>Puoi andare avanti e indietro. Se chiudi la pagina, riprendi da qui su questo dispositivo.</li>' +
+      '<li>Alla fine rivedi tutto e lo mandi a Giorgio.</li>' +
+      '</ul>' + note +
+      '<div class="box">🔒 Le risposte restano su questo dispositivo: la pagina non le salva su nessun server. ' +
+      'Escono solo quando le mandi tu, per e-mail.</div>' +
+      '<label class="campo" for="nome">Il tuo nome</label>' +
+      '<input class="testo" id="nome" autocomplete="name" value="' + esc(S.nome) + '" placeholder="Nome e cognome">';
+    var nome = document.getElementById("nome");
+    nome.addEventListener("input", function () { S.nome = nome.value.trim(); salva(); });
+    var dc = document.getElementById("dacapo");
+    if (dc) dc.addEventListener("click", function () {
+      if (!confirm("Cancellare tutte le risposte date finora?")) return;
+      S = { passo: 0, nome: "", v: {}, u: {}, nulla: {} }; ripreso = false; salva(); mostra(0);
+    });
+  }
+
+  function categoria(c) {
+    var html = '<h2><span aria-hidden="true">' + c.icon + '</span>' + esc(c.name) + '</h2>' +
+      '<p class="sotto">' + c.items.length + (c.items.length === 1 ? ' voce' : ' voci') +
+      ' · <button class="tutte" type="button" id="nessuna">Nessuna di queste spese</button></p>';
+    c.items.forEach(function (it) {
+      var u = unita(it), nul = !!S.nulla[it.id], val = S.v[it.id];
+      html += '<div class="voce' + (nul ? ' nulla' : '') + '" data-id="' + it.id + '">' +
+        '<div class="tit"><label for="i_' + it.id + '">' + esc(it.label) + '</label></div>' +
+        '<div class="dom">' + esc(it.q) + '</div>' +
+        '<div class="riga">' +
+          '<div class="imp"><span>CHF</span><input class="importo" id="i_' + it.id + '" inputmode="decimal" autocomplete="off"' +
+            ' value="' + (nul ? '' : (val !== undefined && val !== "" ? fmtImporto(val) : '')) + '"' +
+            (nul ? ' disabled' : '') + ' placeholder="0"></div>' +
+          '<div class="unita" role="group" aria-label="Periodo">' +
+          ["settimana", "mese", "anno"].map(function (k) {
+            return '<button type="button" data-u="' + k + '" aria-pressed="' + (u === k) + '"' + (nul ? ' disabled' : '') + '>' +
+              ETICHETTA_U[k] + '</button>';
+          }).join("") +
+          '</div>' +
+        '</div>' +
+        '<div class="piede"><span class="mese" aria-live="polite"></span>' +
+        '<button class="nonho" type="button" aria-pressed="' + nul + '">Non ce l’ho</button></div>' +
+      '</div>';
+    });
+    app.innerHTML = html;
+    c.items.forEach(function (it) { collega(it); aggiornaRiga(it); });
+    document.getElementById("nessuna").addEventListener("click", function () {
+      c.items.forEach(function (it) { impostaNulla(it, true); });
+      salva();
+    });
+  }
+
+  function riga(it) { return app.querySelector('.voce[data-id="' + it.id + '"]'); }
+
+  function aggiornaRiga(it, errore) {
+    var r = riga(it); if (!r) return;
+    var out = r.querySelector(".mese");
+    out.classList.toggle("err", !!errore);
+    if (errore) { out.textContent = "Non riesco a leggere questa cifra"; return; }
+    var m = alMese(it);
+    if (S.nulla[it.id]) out.innerHTML = "Nessuna spesa";
+    else if (m === null) out.textContent = "";
+    else if (unita(it) === "mese") out.innerHTML = "<b>CHF " + fmt(m) + "</b> al mese";
+    else out.innerHTML = "= <b>CHF " + fmt(m) + "</b> al mese";
+  }
+
+  function impostaNulla(it, si) {
+    if (si) { S.nulla[it.id] = true; delete S.v[it.id]; } else { delete S.nulla[it.id]; }
+    var r = riga(it); if (!r) return;
+    r.classList.toggle("nulla", si);
+    var inp = r.querySelector("input.importo");
+    inp.disabled = si; if (si) inp.value = "";
+    r.querySelectorAll(".unita button").forEach(function (b) { b.disabled = si; });
+    r.querySelector("button.nonho").setAttribute("aria-pressed", String(si));
+    aggiornaRiga(it);
+  }
+
+  function collega(it) {
+    var r = riga(it), inp = r.querySelector("input.importo");
+    inp.addEventListener("input", function () {           // niente render: aggiorna solo la riga
+      var n = norm(inp.value);
+      if (n === null) { aggiornaRiga(it, true); return; }
+      if (n === "") delete S.v[it.id]; else S.v[it.id] = n;
+      aggiornaRiga(it); salva();
+    });
+    inp.addEventListener("blur", function () {
+      var n = norm(inp.value);
+      if (n !== null && n !== "") inp.value = fmtImporto(n);
+    });
+    inp.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      var tutti = Array.prototype.slice.call(app.querySelectorAll("input.importo:not(:disabled)"));
+      var i = tutti.indexOf(inp);
+      if (i >= 0 && i < tutti.length - 1) tutti[i + 1].focus(); else inp.blur();
+    });
+    r.querySelectorAll(".unita button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var k = b.getAttribute("data-u");
+        if (k === it.unit) delete S.u[it.id]; else S.u[it.id] = k;
+        r.querySelectorAll(".unita button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+        aggiornaRiga(it); salva();
+      });
+    });
+    r.querySelector("button.nonho").addEventListener("click", function () {
+      impostaNulla(it, !S.nulla[it.id]); salva();
+      if (!S.nulla[it.id]) inp.focus();
+    });
+  }
+
+  // ── riepilogo e invio
+  function datiDaInviare() {
+    var b = {};
+    DA_CHIEDERE.forEach(function (it) {
+      if (!risposta(it)) return;
+      b[it.id] = S.nulla[it.id] ? "0" : S.v[it.id];
+      if (!S.nulla[it.id] && S.u[it.id] && S.u[it.id] !== it.unit) b[it.id + "_u"] = S.u[it.id];
+    });
+    var oggi = new Date();
+    var data = oggi.getFullYear() + "-" + ("0" + (oggi.getMonth() + 1)).slice(-2) + "-" + ("0" + oggi.getDate()).slice(-2);
+    return { tipo: "svag-budget-wizard", v: 1, fonte: VOCI.fonte, data: data, nome: S.nome, budget: b };
+  }
+
+  function riepilogo() {
+    var fisse = 0, variabili = 0, risposte = 0, mancano = [];
+    var html = '<h1>Riepilogo</h1><p class="sotto">Tocca «modifica» per tornare su un gruppo.</p>';
+    CATEGORIE.forEach(function (c, i) {
+      var righe = "";
+      c.items.forEach(function (it) {
+        if (!risposta(it)) { mancano.push(it); return; }
+        risposte++;
+        var m = alMese(it) || 0;
+        if (it.type === "F") fisse += m; else variabili += m;
+        righe += '<tr><td>' + esc(it.label) + '</td>' +
+          (S.nulla[it.id]
+            ? '<td class="n" colspan="2">non ce l’ho</td>'
+            : '<td class="n">' + fmtImporto(S.v[it.id]) + ' ' + PER_U[unita(it)] + '</td><td class="n"><b>' + fmt(m) + '</b></td>') +
+          '</tr>';
+      });
+      if (!righe) return;
+      html += '<div class="cat-tit"><b>' + c.icon + ' ' + esc(c.name) + '</b>' +
+        '<a href="#" data-vai="' + (i + 1) + '">modifica</a></div>' +
+        '<table><thead><tr><th>Voce</th><th class="n">Importo</th><th class="n">Al mese</th></tr></thead><tbody>' +
+        righe + '</tbody></table>';
+    });
+    var tot = fisse + variabili;
+    html = html.replace('<p class="sotto">',
+      '<div class="totali">' +
+        '<div class="tile grande"><div class="k">Totale al mese</div><div class="v">CHF ' + fmt(tot) + '</div></div>' +
+        '<div class="tile"><div class="k">Spese fisse</div><div class="v">' + fmt(fisse) + '</div></div>' +
+        '<div class="tile"><div class="k">Spese variabili</div><div class="v">' + fmt(variabili) + '</div></div>' +
+        '<div class="tile grande"><div class="k">Totale all’anno</div><div class="v">CHF ' + fmt(tot * 12) + '</div></div>' +
+      '</div><p class="sotto">');
+    if (!risposte) html += '<p class="vuoto">Non hai ancora risposto a nessuna voce.</p>';
+    if (mancano.length) {
+      var primo = 1 + CATEGORIE.findIndex(function (c) { return c.id === mancano[0].cat.id; });
+      html += '<div class="box oro">' + mancano.length + (mancano.length === 1 ? ' voce è rimasta' : ' voci sono rimaste') +
+        ' senza risposta. Va bene così se non le conosci; Giorgio te le chiederà a voce. ' +
+        '<a href="#" data-vai="' + primo + '">Rivedi le prime</a></div>';
+    }
+    var nomeVuoto = !S.nome;
+    html += '<h2>Invia a Giorgio</h2>' +
+      (nomeVuoto ? '<label class="campo" for="nome2">Il tuo nome</label><input class="testo" id="nome2" placeholder="Nome e cognome">' : '') +
+      '<div class="azioni">' +
+        '<button class="primario" type="button" id="invia">✉️  Apri la mail per Giorgio</button>' +
+        '<button class="secondario" type="button" id="copia">Copia i dati</button>' +
+        '<button class="secondario" type="button" id="scarica">Scarica il file</button>' +
+      '</div>' +
+      '<p class="esito" id="esito" aria-live="polite"></p>' +
+      '<p class="nota">Il primo pulsante apre la tua posta con tutto già scritto: controlla e premi Invia. ' +
+      'Se non si apre niente, tocca «Copia i dati» e incollali in una mail a <b>' + DESTINATARIO + '</b>.</p>' +
+      '<details><summary>Vedi i dati che invii</summary><pre id="json"></pre></details>' +
+      '<p><button class="tutte" type="button" id="cancella">Cancella le mie risposte da questo dispositivo</button></p>';
+    app.innerHTML = html;
+
+    function testoJson() { return JSON.stringify(datiDaInviare()); }
+    function aggiornaJson() { document.getElementById("json").textContent = JSON.stringify(datiDaInviare(), null, 1); }
+    aggiornaJson();
+    var n2 = document.getElementById("nome2");
+    if (n2) n2.addEventListener("input", function () { S.nome = n2.value.trim(); salva(); aggiornaJson(); });
+
+    app.querySelectorAll("[data-vai]").forEach(function (a) {
+      a.addEventListener("click", function (e) { e.preventDefault(); mostra(Number(a.getAttribute("data-vai")), true); });
+    });
+    var esito = document.getElementById("esito");
+    document.getElementById("invia").addEventListener("click", function () {
+      var sogg = "Il mio budget" + (S.nome ? " — " + S.nome : "");
+      var corpo = "Ciao Giorgio,\n\necco il mio budget compilato.\n\n" + testoJson() + "\n";
+      location.href = "mailto:" + DESTINATARIO + "?subject=" + encodeURIComponent(sogg) + "&body=" + encodeURIComponent(corpo);
+      esito.textContent = "Se si è aperta la mail, premi Invia. Le risposte restano anche qui.";
+    });
+    document.getElementById("copia").addEventListener("click", function () {
+      var t = testoJson();
+      function ok() { esito.textContent = "Copiato. Incollalo in una mail a " + DESTINATARIO + "."; }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(t).then(ok, function () { copiaVecchia(t) ? ok() : (esito.textContent = "Copia non riuscita: apri «Vedi i dati» e copiali a mano."); });
+      } else if (copiaVecchia(t)) ok();
+      else esito.textContent = "Copia non riuscita: apri «Vedi i dati» e copiali a mano.";
+    });
+    document.getElementById("scarica").addEventListener("click", function () {
+      var d = datiDaInviare();
+      var nomeFile = "budget" + (S.nome ? "-" + S.nome.toLowerCase().replace(/[^a-z0-9]+/g, "-") : "") + "-" + d.data + ".json";
+      var url = URL.createObjectURL(new Blob([JSON.stringify(d, null, 1)], { type: "application/json" }));
+      var a = document.createElement("a"); a.href = url; a.download = nomeFile;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      esito.textContent = "File scaricato: allegalo a una mail per " + DESTINATARIO + ".";
+    });
+    document.getElementById("cancella").addEventListener("click", function () {
+      if (!confirm("Cancellare le tue risposte da questo dispositivo? Quelle già inviate a Giorgio restano a lui.")) return;
+      try { localStorage.removeItem(CHIAVE); } catch (e) {}
+      S = { passo: 0, nome: "", v: {}, u: {}, nulla: {} }; ripreso = false;
+      mostra(0);
+    });
+  }
+
+  function copiaVecchia(t) {
+    var ta = document.createElement("textarea");
+    ta.value = t; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    var ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+    ta.remove(); return ok;
+  }
+
+  document.getElementById("indietro").addEventListener("click", function () { if (S.passo > 0) mostra(S.passo - 1, true); });
+  document.getElementById("avanti").addEventListener("click", function () { if (S.passo < RIEPILOGO) mostra(S.passo + 1, true); });
+  mostra(S.passo);
+})();
+</script>
+</body>
+</html>
