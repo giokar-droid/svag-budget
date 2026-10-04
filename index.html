@@ -148,6 +148,7 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
 (function () {
   "use strict";
   var DESTINATARIO = "giorgio.carrara@svag.ch";
+  var WHATSAPP = "41788716900", WHATSAPP_LEGGIBILE = "+41 78 871 69 00";  // v1.5: il canale che i clienti usano davvero
   var CHIAVE = "svag-budget-wizard-v1";
   var VOCI = window.SVAG_VOCI;
   var app = document.getElementById("app");
@@ -338,7 +339,7 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
       '</ul>' + note +
       '<div class="box privacy"><div class="tit">🔒 I tuoi dati</div><ul>' +
       '<li><b>Questa pagina non trasmette le tue risposte a nessun server.</b> Restano solo nel browser di questo dispositivo, così puoi interrompere e riprendere.</li>' +
-      '<li><b>Escono solo se le invii tu</b>, con il tuo programma di posta, a un unico destinatario: Giorgio Carrara, SVAG, ' + DESTINATARIO + '.</li>' +
+      '<li><b>Escono solo se le invii tu</b>, per WhatsApp o per e-mail, a un unico destinatario: Giorgio Carrara, SVAG (' + WHATSAPP_LEGGIBILE + ', ' + DESTINATARIO + ').</li>' +
       '<li><b>Servono a preparare l’analisi del tuo budget</b> nell’ambito della consulenza SVAG. Una volta ricevute, sono trattate secondo la nuova legge federale sulla protezione dei dati (nLPD).</li>' +
       '<li><b>Niente cookie né statistiche.</b> Come ogni sito, il servizio che ospita la pagina (GitHub Pages) registra per sicurezza l’indirizzo IP di chi la visita, ma non riceve le tue risposte.</li>' +
       '<li><b>Le cancelli quando vuoi</b> da questo dispositivo, con il pulsante in fondo al riepilogo.</li>' +
@@ -517,24 +518,33 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
     var nomeVuoto = !S.nome;
     html += '<h2>Invia a Giorgio</h2>' +
       '<div class="box privacy"><div class="tit">🔒 Prima di inviare</div><ul>' +
-      '<li>Il pulsante apre il tuo programma di posta con il messaggio già scritto: lo vedi e decidi tu se inviarlo.</li>' +
-      '<li>Destinatario unico: <b>' + DESTINATARIO + '</b>. Finché non invii, le risposte non lasciano questo dispositivo.</li>' +
+      '<li>Ogni pulsante apre WhatsApp o la tua posta con il messaggio per Giorgio già scritto: lo vedi e decidi tu se inviarlo.</li>' +
+      '<li>Il messaggio contiene un testo <b>pieno di parentesi e virgolette</b>: è il formato che serve a Giorgio, va mandato così com’è.</li>' +
+      '<li>Destinatario unico: Giorgio Carrara. Finché non invii, le risposte non lasciano questo dispositivo.</li>' +
       '<li>Se il dispositivo non è solo tuo, dopo l’invio cancellale con il pulsante qui sotto.</li>' +
       '</ul></div>' +
       (nomeVuoto ? '<label class="campo" for="nome2">Il tuo nome</label><input class="testo" id="nome2" placeholder="Nome e cognome">' : '') +
       '<div class="azioni">' +
-        '<button class="primario" type="button" id="invia">✉️  Apri la mail per Giorgio</button>' +
+        '<button class="primario" type="button" id="whatsapp">💬  Manda a Giorgio su WhatsApp</button>' +
+        '<button class="secondario" type="button" id="invia">✉️  Manda per e-mail</button>' +
         '<button class="secondario" type="button" id="copia">Copia i dati</button>' +
         '<button class="secondario" type="button" id="scarica">Scarica il file</button>' +
       '</div>' +
       '<p class="esito" id="esito" aria-live="polite"></p>' +
-      '<p class="nota">Il primo pulsante apre la tua posta con tutto già scritto: controlla e premi Invia. ' +
-      'Se non si apre niente, tocca «Copia i dati» e incollali in una mail a <b>' + DESTINATARIO + '</b>.</p>' +
+      '<p class="nota">Se nessun pulsante apre l’app, tocca «Copia i dati» e incollali in un messaggio a Giorgio, su WhatsApp (' +
+      WHATSAPP_LEGGIBILE + ') o per e-mail (<b>' + DESTINATARIO + '</b>).</p>' +
       '<details><summary>Vedi i dati che invii</summary><pre id="json"></pre></details>' +
       '<p><button class="tutte" type="button" id="cancella">Cancella le mie risposte da questo dispositivo</button></p>';
     app.innerHTML = html;
 
     function testoJson() { return JSON.stringify(datiDaInviare()); }
+    // v1.5: una riga leggibile prima dei dati, così il cliente vede che il testo strano è voluto.
+    // L'importatore estrae comunque il blocco {…} da qualunque testo attorno.
+    function messaggio() {
+      var d = datiDaInviare(), g = d.data.split("-").reverse().join(".");
+      return "Ciao Giorgio, ecco il mio budget" + (S.nome ? " (" + S.nome + ")" : "") + ", compilato il " + g +
+        ". Il testo qui sotto è per il tuo programma e va mandato così com'è:\n\n" + JSON.stringify(d);
+    }
     function aggiornaJson() { document.getElementById("json").textContent = JSON.stringify(datiDaInviare(), null, 1); }
     aggiornaJson();
     var n2 = document.getElementById("nome2");
@@ -544,15 +554,20 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
       a.addEventListener("click", function (e) { e.preventDefault(); mostra(Number(a.getAttribute("data-vai")), true); });
     });
     var esito = document.getElementById("esito");
+    document.getElementById("whatsapp").addEventListener("click", function () {
+      var url = "https://wa.me/" + WHATSAPP + "?text=" + encodeURIComponent(messaggio());
+      var w = window.open(url, "_blank"); if (!w) location.href = url;
+      esito.textContent = "Se si è aperto WhatsApp, premi Invia: il testo con le parentesi è giusto così.";
+    });
     document.getElementById("invia").addEventListener("click", function () {
       var sogg = "Il mio budget" + (S.nome ? " — " + S.nome : "");
-      var corpo = "Ciao Giorgio,\n\necco il mio budget compilato.\n\n" + testoJson() + "\n";
+      var corpo = messaggio() + "\n";
       location.href = "mailto:" + DESTINATARIO + "?subject=" + encodeURIComponent(sogg) + "&body=" + encodeURIComponent(corpo);
       esito.textContent = "Se si è aperta la mail, premi Invia. Le risposte restano anche qui.";
     });
     document.getElementById("copia").addEventListener("click", function () {
-      var t = testoJson();
-      function ok() { esito.textContent = "Copiato. Incollalo in una mail a " + DESTINATARIO + "."; }
+      var t = messaggio();
+      function ok() { esito.textContent = "Copiato. È normale che sia pieno di parentesi: incollalo così com’è in un messaggio a Giorgio, su WhatsApp o per e-mail."; }
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(t).then(ok, function () { copiaVecchia(t) ? ok() : (esito.textContent = "Copia non riuscita: apri «Vedi i dati» e copiali a mano."); });
       } else if (copiaVecchia(t)) ok();
