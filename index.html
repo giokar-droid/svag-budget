@@ -53,6 +53,8 @@ input.testo:focus, input.importo:focus { outline: none; border-color: var(--acce
 .voce.nulla { background: var(--off); }
 .voce .tit { font-weight: 650; }
 .voce .dom { color: var(--muted); font-size: 15px; margin: 2px 0 10px; }
+.chip { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--off); color: var(--muted); font-size: 12px; font-weight: 500; vertical-align: middle; }
+.voce.corretta .chip { display: none; }
 .voce input.desc { margin-top: 10px; font-size: 16px; padding: 10px 12px; }
 .voce.nulla input.desc { display: none; }
 td .desc-r { display: block; font-size: 14px; color: var(--muted); }
@@ -166,6 +168,36 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
   VOCI.categorie.forEach(function (c) {
     c.items.forEach(function (it) { it.cat = c; TUTTE.push(it); PER_ID[it.id] = it; });
   });
+
+  // ── voci precompilate dal colloquio: #pre=<base64url di "id=importo[:s|m|a];…">
+  // Il frammento dopo # resta nel browser: non viene mandato al servizio che ospita la pagina.
+  var PRE = null;
+  (function () {
+    var m = /(?:^|[#&])pre=([^&]*)/.exec(location.hash);
+    if (!m || !m[1]) return;
+    var testo;
+    try {
+      var b64 = m[1].replace(/-/g, "+").replace(/_/g, "/");
+      while (b64.length % 4) b64 += "=";
+      testo = decodeURIComponent(Array.prototype.map.call(atob(b64), function (ch) {
+        return "%" + ("00" + ch.charCodeAt(0).toString(16)).slice(-2);
+      }).join(""));
+    } catch (e) { return; }
+    var U = { s: "settimana", m: "mese", a: "anno" }, pre = { v: {}, u: {}, nulla: {}, ids: [] };
+    testo.split(";").forEach(function (pezzo) {
+      var kv = pezzo.split("="); if (kv.length !== 2 || !PER_ID[kv[0]]) return;
+      var it = PER_ID[kv[0]], parti = kv[1].split(":"), val = parti[0], u = U[parti[1]] || it.unit;
+      if (!/^\d+(?:\.\d+)?$/.test(val)) return;
+      pre.ids.push(it.id);
+      if (Number(val) === 0) { pre.nulla[it.id] = true; return; }
+      pre.v[it.id] = val;
+      if (u !== it.unit) pre.u[it.id] = u;
+    });
+    if (!pre.ids.length) return;
+    var h = 0; for (var i = 0; i < m[1].length; i++) h = (h * 31 + m[1].charCodeAt(i)) | 0;
+    pre.firma = String(h);
+    PRE = pre;
+  })();
   var CATEGORIE = VOCI.categorie
     .map(function (c) { return { id: c.id, icon: c.icon, name: c.name, items: c.items.filter(function (it) { return !salta[it.id]; }) }; })
     .filter(function (c) { return c.items.length > 0; });
@@ -177,21 +209,43 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
   var N = CATEGORIE.length, RIEPILOGO = N + 1;
 
   // ── stato, conservato solo su questo dispositivo
-  var S = { passo: 0, nome: "", v: {}, u: {}, nulla: {}, d: {} };
+  var S = { passo: 0, nome: "", v: {}, u: {}, nulla: {}, d: {}, pre: {}, preFirma: "" };
+  function statoVuoto() { return { passo: 0, nome: "", v: {}, u: {}, nulla: {}, d: {}, pre: {}, preFirma: "" }; }
+  function applicaPre(st) {              // le cifre del colloquio diventano risposte già date
+    if (!PRE) return st;
+    PRE.ids.forEach(function (id) {
+      st.pre[id] = true;
+      if (PRE.nulla[id]) st.nulla[id] = true; else st.v[id] = PRE.v[id];
+      if (PRE.u[id]) st.u[id] = PRE.u[id];
+    });
+    st.preFirma = PRE.firma;
+    return st;
+  }
   try {
     var salvato = JSON.parse(localStorage.getItem(CHIAVE) || "null");
-    if (salvato && typeof salvato === "object") {
+    if (salvato && typeof salvato === "object" && (!PRE || salvato.preFirma === PRE.firma)) {
       S.nome = salvato.nome || ""; S.v = salvato.v || {}; S.u = salvato.u || {}; S.nulla = salvato.nulla || {}; S.d = salvato.d || {};
+      S.pre = salvato.pre || {}; S.preFirma = salvato.preFirma || "";
       S.passo = Math.min(Math.max(0, salvato.passo | 0), RIEPILOGO);
+    } else if (PRE) {
+      S = applicaPre(statoVuoto());      // link nuovo (o altro cliente): si riparte dalle sue cifre
+      if (salvato && salvato.nome) S.nome = salvato.nome;
     }
   } catch (e) { /* archivio non disponibile: si lavora senza */ }
   var ripreso = S.passo > 0;
+  function tocca(it) {                   // la voce è stata rivista dal cliente: via l'etichetta
+    if (!S.pre[it.id]) return;
+    delete S.pre[it.id];
+    var r = riga(it); if (r) r.classList.add("corretta");
+  }
+  function preIds() { return PRE ? PRE.ids : []; }
+  function preCorrette() { return preIds().filter(function (id) { return !S.pre[id]; }); }
   var tSalva = null;
   function salvaSubito() {
     clearTimeout(tSalva);
     try {
       // niente da conservare → niente nel browser (vale anche dopo «Cancella»)
-      var niente = !S.nome && !Object.keys(S.v).length && !Object.keys(S.nulla).length && !Object.keys(S.u).length && !Object.keys(S.d).length;
+      var niente = !S.nome && !Object.keys(S.v).length && !Object.keys(S.nulla).length && !Object.keys(S.u).length && !Object.keys(S.d).length && !S.preFirma;
       if (niente && S.passo === 0) localStorage.removeItem(CHIAVE);
       else localStorage.setItem(CHIAVE, JSON.stringify(S));
     } catch (e) {}
@@ -252,24 +306,31 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
   }
 
   function benvenuto() {
-    var minuti = Math.max(5, Math.round(DA_CHIEDERE.length * 20 / 60));
+    var nPre = preIds().length;
+    var minuti = Math.max(5, Math.round(((DA_CHIEDERE.length - nPre) * 20 + nPre * 8) / 60));
     var note = "";
+    if (nPre) {
+      note += '<div class="box"><b>' + nPre + ' voci sono già riempite</b> con le cifre che abbiamo messo insieme nel colloquio. ' +
+        'Rivedile una per una e correggi quelle che non tornano: quello che non tocchi resta com’è. ' +
+        'Le voci vuote le aggiungi tu, se le hai.</div>';
+    }
     if (GIA_NOTE.length) {
       // minuscola solo l'iniziale, e mai davanti a una sigla (RC, LCA)
       var nomi = GIA_NOTE.slice(0, 5).map(function (it) {
         var l = it.label; return /^[A-Z]{2}/.test(l) ? l : l.charAt(0).toLowerCase() + l.slice(1);
       }).join(", ");
       var resto = GIA_NOTE.length > 5 ? " e altre " + (GIA_NOTE.length - 5) : "";
-      note = '<div class="box oro">Alcune voci non te le chiedo, perché le ho già o non ti riguardano: ' +
+      note += '<div class="box oro">Alcune voci non te le chiedo, perché le ho già o non ti riguardano: ' +
         esc(nomi) + esc(resto) + '.</div>';
     }
     app.innerHTML =
-      '<h1>Il tuo budget, voce per voce</h1>' +
-      '<p class="sotto">' + DA_CHIEDERE.length + ' voci in ' + N + ' gruppi · circa ' + minuti + ' minuti</p>' +
+      '<h1>' + (nPre ? 'Il tuo budget, da rivedere' : 'Il tuo budget, voce per voce') + '</h1>' +
+      '<p class="sotto">' + DA_CHIEDERE.length + ' voci in ' + N + ' gruppi' + (nPre ? ', ' + nPre + ' già riempite' : '') + ' · circa ' + minuti + ' minuti</p>' +
       (ripreso ? '<div class="box">Riprendi da dove eri rimasto: le risposte già date sono qui. ' +
         '<button class="tutte" type="button" id="dacapo">Ricomincia da capo</button></div>' : '') +
       '<p>Sono le spese che guardiamo insieme nel colloquio. Bastano cifre all’ingrosso.</p>' +
       '<ul class="punti">' +
+      (nPre ? '<li>Le voci con l’etichetta <span class="chip">dal colloquio</span> sono quelle della serata: toccale solo se vanno corrette.</li>' : '') +
       '<li>Per ogni voce scegli se l’importo è <b>a settimana, al mese o all’anno</b>: quella che ti viene più naturale.</li>' +
       '<li>Se una spesa non ce l’hai, tocca <b>«Non ce l’ho»</b>. Se non la sai, lasciala vuota.</li>' +
       '<li>Puoi andare avanti e indietro. Se chiudi la pagina, riprendi da qui su questo dispositivo.</li>' +
@@ -288,8 +349,8 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
     nome.addEventListener("input", function () { S.nome = nome.value.trim(); salva(); });
     var dc = document.getElementById("dacapo");
     if (dc) dc.addEventListener("click", function () {
-      if (!confirm("Cancellare tutte le risposte date finora?")) return;
-      S = { passo: 0, nome: "", v: {}, u: {}, nulla: {}, d: {} }; ripreso = false; salva(); mostra(0);
+      if (!confirm(PRE ? "Annullare le tue correzioni e tornare alle cifre del colloquio?" : "Cancellare tutte le risposte date finora?")) return;
+      S = applicaPre(statoVuoto()); ripreso = false; salva(); mostra(0);
     });
   }
 
@@ -300,7 +361,8 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
     c.items.forEach(function (it) {
       var u = unita(it), nul = !!S.nulla[it.id], val = S.v[it.id];
       html += '<div class="voce' + (nul ? ' nulla' : '') + '" data-id="' + it.id + '">' +
-        '<div class="tit"><label for="i_' + it.id + '">' + esc(it.label) + '</label></div>' +
+        '<div class="tit"><label for="i_' + it.id + '">' + esc(it.label) + '</label>' +
+        (S.pre[it.id] ? '<span class="chip">dal colloquio</span>' : '') + '</div>' +
         '<div class="dom">' + esc(it.q) + '</div>' +
         '<div class="riga">' +
           '<div class="imp"><span>CHF</span><input class="importo" id="i_' + it.id + '" inputmode="decimal" autocomplete="off"' +
@@ -322,7 +384,7 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
     app.innerHTML = html;
     c.items.forEach(function (it) { collega(it); aggiornaRiga(it); });
     document.getElementById("nessuna").addEventListener("click", function () {
-      c.items.forEach(function (it) { impostaNulla(it, true); });
+      c.items.forEach(function (it) { tocca(it); impostaNulla(it, true); });
       salva();
     });
   }
@@ -359,9 +421,10 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
     if (ds) ds.addEventListener("input", function () {
       var t = ds.value.trim();
       if (t) S.d[it.id] = t; else delete S.d[it.id];
-      salva();
+      tocca(it); salva();
     });
     inp.addEventListener("input", function () {           // niente render: aggiorna solo la riga
+      tocca(it);
       var n = norm(inp.value);
       if (n === null) { aggiornaRiga(it, true); return; }
       if (n === "") delete S.v[it.id]; else S.v[it.id] = n;
@@ -381,13 +444,14 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
     r.querySelectorAll(".unita button").forEach(function (b) {
       b.addEventListener("click", function () {
         var k = b.getAttribute("data-u");
+        tocca(it);
         if (k === it.unit) delete S.u[it.id]; else S.u[it.id] = k;
         r.querySelectorAll(".unita button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
         aggiornaRiga(it); salva();
       });
     });
     r.querySelector("button.nonho").addEventListener("click", function () {
-      impostaNulla(it, !S.nulla[it.id]); salva();
+      tocca(it); impostaNulla(it, !S.nulla[it.id]); salva();
       if (!S.nulla[it.id]) inp.focus();
     });
   }
@@ -403,7 +467,9 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
     });
     var oggi = new Date();
     var data = oggi.getFullYear() + "-" + ("0" + (oggi.getMonth() + 1)).slice(-2) + "-" + ("0" + oggi.getDate()).slice(-2);
-    return { tipo: "svag-budget-wizard", v: 1, fonte: VOCI.fonte, data: data, nome: S.nome, budget: b };
+    var out = { tipo: "svag-budget-wizard", v: 1, fonte: VOCI.fonte, data: data, nome: S.nome, budget: b };
+    if (PRE) { out.precompilato = true; out.modificate = preCorrette(); }
+    return out;
   }
 
   function riepilogo() {
@@ -437,6 +503,11 @@ nav.barra button[hidden] { visibility: hidden; display: inline-block; }
         '<div class="tile grande"><div class="k">Totale all’anno</div><div class="v">CHF ' + fmt(tot * 12) + '</div></div>' +
       '</div><p class="sotto">');
     if (!risposte) html += '<p class="vuoto">Non hai ancora risposto a nessuna voce.</p>';
+    if (PRE) {
+      var nc = preCorrette().length, np = preIds().length;
+      html += '<div class="box">' + (nc ? 'Hai corretto <b>' + nc + '</b> ' + (nc === 1 ? 'voce' : 'voci') + ' su ' + np + ' del colloquio.' :
+        'Non hai corretto nessuna delle ' + np + ' voci del colloquio: se sono giuste così, invia pure.') + '</div>';
+    }
     if (mancano.length) {
       var primo = 1 + CATEGORIE.findIndex(function (c) { return c.id === mancano[0].cat.id; });
       html += '<div class="box oro">' + mancano.length + (mancano.length === 1 ? ' voce è rimasta' : ' voci sono rimaste') +
